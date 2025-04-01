@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter&family=IBM+Plex+Sans:wght@500;600;700;800&display=swap');
+
+/* Gradient background on app container */
+html, body, .stApp {
+    background: linear-gradient(to right, #0a013d, #4e6781);
+    font-family: 'Inter', sans-serif;
+}
+
+/* ===== Title & Header Styling ===== */
+h1, h2, h3, .stTitle, .stSubheader {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #f3f8f9;
+}
+
+h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+}
+
+h2, .stSubheader {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #00cfff;
+}
+
+h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #dddddd;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+
+/* Button glow effect */
+.stButton>button, .stDownloadButton>button {
+    background-color: #1f77b4;
+    color: white;
+    border-radius: 8px;
+    padding: 0.5em 1.2em;
+    font-weight: 600;
+    transition: all 0.3s ease-in-out;
+    box-shadow: none;
+}
+
+.stButton>button:hover,
+.stDownloadButton>button:hover {
+    box-shadow: 0 0 12px 3px rgba(0, 168, 255, 0.5);
+}
+
+/* DataFrame Styling */
+.stDataFrame {
+    background-color: #002b5c !important;
+    color: #ffffff !important;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #666;
+}
+
+/* Radio Button Styling */
+.stRadio label {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Section Padding */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Widget Size Adjustments */
+.stSelectbox, .stRadio, .stMultiselect, .stTextInput {
+    max-width: 300px;
+    width: 100%;
+    padding: 4px;
+}
+
+.stTextInput>div>input {
+    background-color: #ffffff10;
+}
+
+.css-1cpxqw2 {
+    max-width: 300px !important;
+}
+
+.stFileUploader {
+    max-width: 400px;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Alerts */
+.stAlert {
+    max-width: 400px;
+    margin-left: 0;
+    margin-right: auto;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+/* Multiselect container */
+div[data-baseweb="select"] {
+    max-width: 300px;
+    margin-left: 0;
+    margin-right: auto;
+}

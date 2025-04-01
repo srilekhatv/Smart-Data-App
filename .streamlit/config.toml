@@ -1,0 +1,7 @@
+[theme]
+base = "dark"
+primaryColor = "#1f77b4"
+backgroundColor = "#0a013d"  # pulled from your gradient start
+secondaryBackgroundColor = "#002b5c"
+textColor = "#ffffff"
+font = "sans serif"
