@@ -29,7 +29,7 @@ def inject_dark_theme_css():
 
 # Set page config
 st.set_page_config(
-    page_title="Smart Data Prep & EDA",
+    page_title="Smart Data & EDA",
     layout="wide",
     initial_sidebar_state="expanded"
 )
