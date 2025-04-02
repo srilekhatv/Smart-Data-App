@@ -103,14 +103,6 @@ with tab1:
         df = st.session_state["df"]
         df_cleaned = st.session_state["cleaned_df"]
 
-
-        # Initial dtype conversion
-        df = df.convert_dtypes()
-        df = df.infer_objects()
-
-        # Create cleaned copy early so all steps can use it
-        df_cleaned = df.copy()
-
         # -------------------------------
         # 1️⃣ Data Preview
         # -------------------------------
@@ -176,7 +168,8 @@ with tab1:
                 if cols_to_drop:
                     if st.button("Drop Selected Columns"):
                         df_cleaned.drop(columns=cols_to_drop, inplace=True)
-                        st.success(f"Dropped: {', '.join(cols_to_drop)}")
+                        after_shape = df_cleaned.shape
+                        st.success(f"Dropped: {', '.join(cols_to_drop)}. Shape - {after_shape}")
 
             elif cleaning_task == "Rename Columns":
                 st.markdown("Edit the column names below:")
@@ -399,190 +392,152 @@ with tab2:
     # TODO: Visualizations and correlation matrix
 
 with tab3:
-
-    df_cleaned = st.session_state.get("cleaned_df")
-    if df_cleaned is None:
-        st.warning("Please upload and clean a dataset in Tab 1 first.")
-        st.stop()
-
     st.subheader("Data Preprocessing")
 
-    # -------------------------------
-    # Handle Missing Values
-    # -------------------------------
+    # ✅ Load cleaned dataset from session state safely
+    if "cleaned_df" in st.session_state:
+        df_cleaned = st.session_state["cleaned_df"].copy()
 
-    with st.expander("Handle Missing Values", expanded=False):
-        missing_option = st.selectbox(
-        "Choose a missing value strategy:",
-        ["No Action", "Drop rows with missing values", "Impute missing values"]
-        )
-        if missing_option == "Drop rows with missing values":
-            df_cleaned.dropna(inplace=True)
-            st.success("Rows with missing values dropped.")
+        # -------------------------------
+        # Handle Missing Values
+        # -------------------------------
+        with st.expander("Handle Missing Values", expanded=False):
+            missing_option = st.selectbox(
+                "Choose a missing value strategy:",
+                ["No Action", "Drop rows with missing values", "Impute missing values"]
+            )
 
-        elif missing_option == "Impute missing values":
-            impute_method = st.radio("Select imputation method:", ["Mean", "Median", "Mode"])
+            if missing_option == "Drop rows with missing values":
+                df_cleaned.dropna(inplace=True)
+                after_shape = df_cleaned.shape
+                st.success(f"Rows with missing values dropped. Shape - {after_shape}")
 
-            try:
-                for col in df_cleaned.columns:
-                    if df_cleaned[col].isnull().sum() > 0:
-                        if is_numeric_dtype(df_cleaned[col]):
-                            if impute_method == "Mean":
-                                val = df_cleaned[col].mean()
-                                if is_integer_dtype(df_cleaned[col]):
-                                    st.caption(f"Note: Rounded mean for `{col}` to fit Int64 column.")
-                                    val = int(round(val))
-                                df_cleaned[col] = df_cleaned[col].fillna(val)
-                                st.write(f"`{col}` imputed with **mean**: {val}")
-
-                            elif impute_method == "Median":
-                                val = df_cleaned[col].median()
-                                if is_integer_dtype(df_cleaned[col]):
-                                    st.caption(f"Note: Rounded median for `{col}` to fit Int64 column.")
-                                    val = int(round(val))
-                                df_cleaned[col] = df_cleaned[col].fillna(val)
-                                st.write(f"`{col}` imputed with **median**: {val}")
-
-                            elif impute_method == "Mode":
+            elif missing_option == "Impute missing values":
+                impute_method = st.radio("Select imputation method:", ["Mean", "Median", "Mode"])
+                try:
+                    for col in df_cleaned.columns:
+                        if df_cleaned[col].isnull().sum() > 0:
+                            if is_numeric_dtype(df_cleaned[col]):
+                                if impute_method == "Mean":
+                                    val = df_cleaned[col].mean()
+                                    if is_integer_dtype(df_cleaned[col]):
+                                        val = int(round(val))
+                                    df_cleaned[col] = df_cleaned[col].fillna(val)
+                                elif impute_method == "Median":
+                                    val = df_cleaned[col].median()
+                                    if is_integer_dtype(df_cleaned[col]):
+                                        val = int(round(val))
+                                    df_cleaned[col] = df_cleaned[col].fillna(val)
+                                elif impute_method == "Mode":
+                                    val = df_cleaned[col].mode()[0]
+                                    df_cleaned[col] = df_cleaned[col].fillna(val)
+                            else:
                                 val = df_cleaned[col].mode()[0]
                                 df_cleaned[col] = df_cleaned[col].fillna(val)
-                                st.write(f"`{col}` imputed with **mode**: {val}")
-                        else:
-                            val = df_cleaned[col].mode()[0]
-                            df_cleaned[col] = df_cleaned[col].fillna(val)
-                            st.write(f"`{col}` (non-numeric) imputed with **mode**: {val}")
-                st.success(f"Missing values imputed using {impute_method.lower()}.")
-            except Exception as e:
-                st.error(f"Imputation failed: {str(e)}")
+                    st.success(f"Missing values imputed using {impute_method.lower()}.")
+                except Exception as e:
+                    st.error(f"Imputation failed: {str(e)}")
 
-        # Check after handling
-        st.markdown("###### Missing Values After Handling")
+            # ✅ Show missing value summary after handling
+            st.markdown("###### Missing Values After Handling")
+            missing_after = df_cleaned.isnull().sum()
+            missing_percent_after = (missing_after / len(df_cleaned)) * 100
+            missing_df_after = pd.DataFrame({
+                "Missing Values": missing_after,
+                "Percent (%)": missing_percent_after
+            })
+            missing_df_after = missing_df_after[missing_df_after["Missing Values"] > 0]
 
-        missing_after = df_cleaned.isnull().sum()
-        missing_percent_after = (missing_after / len(df_cleaned)) * 100
-        missing_df_after = pd.DataFrame({
-            "Missing Values": missing_after,
-            "Percent (%)": missing_percent_after
-        })
-        missing_df_after = missing_df_after[missing_df_after["Missing Values"] > 0]
+            if not missing_df_after.empty:
+                st.dataframe(missing_df_after.astype(str))
+            else:
+                st.success("No missing values remaining in the cleaned dataset!")
 
-        if not missing_df_after.empty:
-            st.dataframe(missing_df_after.astype(str))
-        else:
-            st.success("No missing values remaining in the cleaned dataset!")
-
-    # Save update
-    st.session_state.cleaned_df = df_cleaned.copy()
-
-    # -------------------------------
-    # Feature Scaling
-    # -------------------------------
-    
-    with st.expander("Feature Scaling", expanded=False):
-        scaling_option = st.selectbox("Choose a scaling method:", [
-            "No Action", "StandardScaler", "MinMaxScaler", "RobustScaler", "MaxAbsScaler", "Normalizer"
-        ])
-
-        try:
-            if scaling_option != "No Action":
-                scaler_map = {
-                    "StandardScaler": StandardScaler(),
-                    "MinMaxScaler": MinMaxScaler(),
-                    "RobustScaler": RobustScaler(),
-                    "MaxAbsScaler": MaxAbsScaler(),
-                    "Normalizer": Normalizer()
-                }
-
-                scaler = scaler_map[scaling_option]
-
-                numeric_cols = [col for col in df_cleaned.columns if is_numeric_dtype(df_cleaned[col])]
-
-                if numeric_cols:
-                    df_cleaned[numeric_cols] = scaler.fit_transform(df_cleaned[numeric_cols])
-                    st.success(f"Applied {scaling_option} to numeric columns.")
-                    st.write("Scaled columns:", numeric_cols)
-
-                    st.markdown("#### Preview After Scaling")
-                    st.dataframe(df_cleaned.head())
-                else:
-                    st.warning("No numeric columns found for scaling.")
-
-        except Exception as e:
-            st.error(f"Scaling failed: {str(e)}")
-
-        # ✅ Save updated state
-        st.session_state.cleaned_df = df_cleaned.copy()
-
-
-    # -------------------------------
-    # Categorical Encoding
-    # -------------------------------
-
-    with st.expander("Categorical Encoding", expanded=False):
-        cat_cols = [
-            col for col in df_cleaned.columns 
-            if is_object_dtype(df_cleaned[col]) 
-            or isinstance(df_cleaned[col].dtype, pd.CategoricalDtype) 
-            or df_cleaned[col].dtype.name == "string"
-        ]
-
-        if not cat_cols:
-            st.info("No categorical columns detected.")
-        else:
-            selected_encoding = st.selectbox(
-                "Select encoding method:",
-                ["No Action", "Label Encoding", "Ordinal Encoding", "One-Hot Encoding"]
-            )
-
-            selected_columns = st.multiselect(
-                "Select categorical columns to encode:",
-                cat_cols
-            )
-
-            if selected_encoding == "Ordinal Encoding":
-                st.markdown("*Optional: Enter custom order for each selected column (comma-separated). Leave blank for default alphabetical order.*")
+        # -------------------------------
+        # Feature Scaling
+        # -------------------------------
+        with st.expander("Feature Scaling", expanded=False):
+            scaling_option = st.selectbox("Choose a scaling method:", [
+                "No Action", "StandardScaler", "MinMaxScaler", "RobustScaler", "MaxAbsScaler", "Normalizer"])
 
             try:
-                for col in selected_columns:
-                    if selected_encoding == "Label Encoding":
-                        le = LabelEncoder()
-                        df_cleaned[col] = le.fit_transform(df_cleaned[col].astype(str))
-                        st.write(f"`{col}` encoded with **Label Encoding**.")
-
-                    elif selected_encoding == "Ordinal Encoding":
-                        custom_order = st.text_input(f"Custom order for `{col}` (comma-separated)", key=f"order_{col}")
-                        if custom_order:
-                            categories = [x.strip() for x in custom_order.split(",")]
-                            oe = OrdinalEncoder(categories=[categories])
-                            df_cleaned[col] = oe.fit_transform(df_cleaned[[col]].astype(str))
-                            st.write(f"`{col}` encoded with **Ordinal Encoding (custom order)**: {categories}")
-                        else:
-                            sorted_categories = sorted(df_cleaned[col].dropna().unique())
-                            oe = OrdinalEncoder(categories=[sorted_categories])
-                            df_cleaned[col] = oe.fit_transform(df_cleaned[[col]].astype(str))
-                            st.write(f"`{col}` encoded with **Ordinal Encoding (default)**: {sorted_categories}")
-
-                    elif selected_encoding == "One-Hot Encoding":
-                        df_cleaned = pd.get_dummies(df_cleaned, columns=[col], drop_first=True)
-                        st.write(f"`{col}` encoded with **One-Hot Encoding**.")
-
-                if selected_encoding != "No Action" and selected_columns:
-                    st.success("Encoding completed.")
-                    st.markdown("#### Preview After Encoding")
-                    st.dataframe(df_cleaned.head(10))
-
+                if scaling_option != "No Action":
+                    scaler_map = {
+                        "StandardScaler": StandardScaler(),
+                        "MinMaxScaler": MinMaxScaler(),
+                        "RobustScaler": RobustScaler(),
+                        "MaxAbsScaler": MaxAbsScaler(),
+                        "Normalizer": Normalizer()
+                    }
+                    scaler = scaler_map[scaling_option]
+                    numeric_cols = [col for col in df_cleaned.columns if is_numeric_dtype(df_cleaned[col])]
+                    if numeric_cols:
+                        df_cleaned[numeric_cols] = scaler.fit_transform(df_cleaned[numeric_cols])
+                        st.success(f"Applied {scaling_option} to numeric columns.")
+                        st.markdown("#### Preview After Scaling")
+                        st.dataframe(df_cleaned.head())
+                    else:
+                        st.warning("No numeric columns found for scaling.")
             except Exception as e:
-                st.error(f"Encoding failed: {str(e)}")
+                st.error(f"Scaling failed: {str(e)}")
 
-        # ✅ Update session state
+        # -------------------------------
+        # Categorical Encoding
+        # -------------------------------
+        with st.expander("Categorical Encoding", expanded=False):
+            cat_cols = [col for col in df_cleaned.columns if is_object_dtype(df_cleaned[col])
+                        or isinstance(df_cleaned[col].dtype, pd.CategoricalDtype)
+                        or df_cleaned[col].dtype.name == "string"]
+
+            if not cat_cols:
+                st.info("No categorical columns detected.")
+            else:
+                selected_encoding = st.selectbox(
+                    "Select encoding method:",
+                    ["No Action", "Label Encoding", "Ordinal Encoding", "One-Hot Encoding"]
+                )
+                selected_columns = st.multiselect("Select categorical columns to encode:", cat_cols)
+
+                if selected_encoding == "Ordinal Encoding":
+                    st.markdown("*Optional: Enter custom order for each selected column (comma-separated). Leave blank for default alphabetical order.*")
+
+                try:
+                    for col in selected_columns:
+                        if selected_encoding == "Label Encoding":
+                            le = LabelEncoder()
+                            df_cleaned[col] = le.fit_transform(df_cleaned[col].astype(str))
+                            st.write(f"`{col}` encoded with **Label Encoding**.")
+                        elif selected_encoding == "Ordinal Encoding":
+                            custom_order = st.text_input(f"Custom order for `{col}` (comma-separated)", key=f"order_{col}")
+                            if custom_order:
+                                categories = [x.strip() for x in custom_order.split(",")]
+                                oe = OrdinalEncoder(categories=[categories])
+                            else:
+                                sorted_categories = sorted(df_cleaned[col].dropna().unique())
+                                oe = OrdinalEncoder(categories=[sorted_categories])
+                            df_cleaned[col] = oe.fit_transform(df_cleaned[[col]].astype(str))
+                            st.write(f"`{col}` encoded with **Ordinal Encoding**.")
+                        elif selected_encoding == "One-Hot Encoding":
+                            df_cleaned = pd.get_dummies(df_cleaned, columns=[col], drop_first=True)
+                            st.write(f"`{col}` encoded with **One-Hot Encoding**.")
+                    if selected_encoding != "No Action" and selected_columns:
+                        st.success("Encoding completed.")
+                        st.markdown("#### Preview After Encoding")
+                        st.dataframe(df_cleaned.head(10))
+                except Exception as e:
+                    st.error(f"Encoding failed: {str(e)}")
+
+
+        # ✅ Save the updates back to session state
         st.session_state.cleaned_df = df_cleaned.copy()
 
-    # Download Dataset
-    if "cleaned_df" in st.session_state:
         st.markdown(get_clickable_markdown_download_link(
-            st.session_state.cleaned_df, 
-            text="### Download Clean Dataset"
-            ), unsafe_allow_html=True)
+        st.session_state.cleaned_df, 
+        text="Download Cleaned Dataset"
+        ), unsafe_allow_html=True)
+
+    else:
+        st.warning("Please upload and clean your dataset in Tab 1 before proceeding.")
 
     
 # TODO: Missing value handling, scaling, encoding, download
