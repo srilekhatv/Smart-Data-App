@@ -29,7 +29,7 @@ def inject_dark_theme_css():
 
 # Set page config
 st.set_page_config(
-    page_title="Smart Data & EDA",
+    page_title="AutoNexus: Automate. Explore. Model. Explain.",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -39,13 +39,12 @@ inject_dark_theme_css()
 
 # App Title & Intro
 
-st.title("Smart Data Pre-Processing & Exploratory Data Analysis")
+st.title("AutoNexus: Automate. Explore. Model. Explain.")
 
 
 
 st.markdown(
     """
-    **Load. Clean. Explore. No Code Needed.** 
 
     Whether you're prepping data for machine learning or just making sense of a new dataset — this app gives you an intuitive, powerful interface to handle it all.
 
